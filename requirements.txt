@@ -1,0 +1,5 @@
+# Tested on python 3.13.1 using MacOS with M chip
+requests
+beautifulsoup4
+pandas
+openpyxl
