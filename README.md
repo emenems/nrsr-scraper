@@ -1,6 +1,12 @@
 # NRSR Scraper
 
-This is a minimal scraper for **National Council of the Slovak**-related content.
+This is a minimal scraper for data related to **National Council of the Slovak Republic** (NRSR).
+
+The scraper currently allows to get:
+
+- Votings in the NRSR (a.k.a Parliament)
+- NRSR Members info
+- Election results for all members
 
 ## Setup
 
@@ -23,16 +29,25 @@ This is a minimal scraper for **National Council of the Slovak**-related content
 
 ```bash
 # Scrape votings - passing the starting and end ID of the session
-python src/main.py --type voting --start-id 51426 --end-id 55841
+python src/main.py --type voting \
+                   --start-id 51426 \
+                   --end-id 55841
 
 # Scrape votings - passing the starting and end ID of the session and specifying the save file
-python src/main.py --type voting --start-id 51426 --end-id 52921 --save-to data/raw/voting_2023.json
+python src/main.py --type voting \
+                   --start-id 51426 \
+                   --end-id 52921 \
+                   --save-to data/raw/voting_2023.json
 
 # Scrape member info using the voting to get all member IDs
-python src/main.py --type member --input-file data/raw/voting_2023.json --save-to data/raw/members_2023.json
+python src/main.py --type member \
+                   --input-file data/raw/voting_2023.json \
+                   --save-to data/raw/members_2023.json
 
 # Scrape election results for members
-python src/main.py --type election --input-file https://volby.statistics.sk/nrsr/nrsr2023/files/xlsx/NRSR2023_SK_tab07a.xlsx --save-to data/interim/member_elections.xlsx
+python src/main.py --type election \
+                    --input-file https://volby.statistics.sk/nrsr/nrsr2023/files/xlsx/NRSR2023_SK_tab07a.xlsx \
+                    --save-to data/interim/member_elections.xlsx
 ```
 
 The IDs can be obtianed by visiting the [Voting by session](https://www.nrsr.sk/web/?sid=schodze/hlasovanie/schodze) then selecting the session and the voting - the ID is in the URL, e.g. 55635 `https://www.nrsr.sk/web/Default.aspx?sid=schodze/hlasovanie/hlasklub&ID=55635`
