@@ -15,7 +15,7 @@ def voting_to_dataframe(json_file):
             'cislo_hlasovania': details.get('cislo_hlasovania'),
             'nazov_hlasovania': details.get('nazov_hlasovania'),
             'vysledok_hlasovania': details.get('vysledok_hlasovania'),
-            'schvalene': _map_result(details.get('schvalene')),
+            'schvalene': _map_result(details.get('vysledok_hlasovania')),
             'pritomni': details.get('pritomni'),
             'hlasujucich': details.get('hlasujucich'),
             'za_hlasovalo': details.get('za_hlasovalo'),
@@ -30,8 +30,6 @@ def voting_to_dataframe(json_file):
             record.update({
                 'klub': vote.get('klub'),
                 'poslanec_priezvisko_meno': vote.get('poslanec_meno'),
-                'poslanec_meno': vote.get('poslanec_meno').split(', ')[0] if vote.get('poslanec_meno') else None,
-                'poslanec_priezvisko': vote.get('poslanec_meno').split(', ')[1] if vote.get('poslanec_meno') else None,
                 'poslanec_id': vote.get('poslanec_id'),
                 'hlas_id': vote.get('hlas_id'),
                 'hlas': _map_voting(vote.get('hlas_id'))
@@ -50,8 +48,8 @@ def member_to_dataframe(json_file):
         base_info = {
             'poslanec_id': member_id,
             'poslanec_meno': details['info'].get('meno'),
-            'poslanec_titul': details['info'].get('titul'),
             'poslanec_priezvisko': details['info'].get('priezvisko'),
+            'poslanec_titul': details['info'].get('titul'),
             'kandidoval_za': str(details['info'].get('kandidoval_za')).replace(' – ', ' - '),
             'poslanec_narodeny': details['info'].get('narodeny'),
             'poslanec_narodnost': details['info'].get('narodnost'),
@@ -118,18 +116,19 @@ if __name__ == "__main__":
                 member = pd.merge(
                     member.assign(temp_priezvisko=member.poslanec_priezvisko.str.split().str[-1]),
                     election.assign(temp_priezvisko=election.poslanec_priezvisko.str.split().str[-1]).drop(columns=['poslanec_priezvisko']),
-                    left_on=['kandidoval_za', 'poslanec_meno', 'temp_priezvisko'],
-                    right_on=['kandidoval_za', 'poslanec_meno', 'temp_priezvisko'],
+                    on=['kandidoval_za', 'poslanec_meno', 'temp_priezvisko'],
                     how='left',
-                    validate='m:1'
-                ).drop(columns=['temp_priezvisko'])
+                    validate='m:1',
+                    suffixes=('', '_y')
+                ).drop(columns=['temp_priezvisko', 'poslanec_priezvisko_y'], errors='ignore')
             voting = pd.merge(
                 voting,
                 member, 
                 on='poslanec_id',
                 how='left',
-                validate='m:1'
-            )
+                validate='m:1',
+                suffixes=('', '_y')
+            ).drop(columns=['poslanec_priezvisko_meno_y'], errors='ignore')
         if voting.shape[0] != nr_check:
             print(f"Error: The number of rows in the voting data has changed from {nr_check} to {voting.shape[0]} after joining with member data.")
             exit(1)
