@@ -4,8 +4,9 @@ This is a minimal scraper for data related to **National Council of the Slovak R
 
 The scraper currently allows to get:
 
-- Votings in the NRSR (a.k.a Parliament)
-- NRSR Members info
+- Votings in the NRSR (a.k.a 'Parlament')
+- Documenat page related to each voting (a.k.a. 'Parlamentna tlac')
+- NRSR Members bio
 - Election results for all members
 
 ## Setup
@@ -25,24 +26,28 @@ The scraper currently allows to get:
     pip install -r requirements.txt
     ```
 
+> No selenium needed - just bs4 :)
+
 ## Run scraper
+
+### Scrape individual subsets
 
 ```bash
 # Scrape votings - passing the starting and end ID of the session
 python src/main.py --type voting \
-                   --start-id 51426 \
+                   --start-id 55837 \
                    --end-id 55841
 
 # Scrape votings - passing the starting and end ID of the session and specifying the save file
 python src/main.py --type voting \
-                   --start-id 51426 \
-                   --end-id 52921 \
-                   --save-to data/raw/voting_2023.json
+                   --start-id 55837 \
+                   --end-id 55841 \
+                   --save-to data/raw/voting_data.json
 
 # Scrape member info using the voting to get all member IDs
 python src/main.py --type member \
-                   --input-file data/raw/voting_2023.json \
-                   --save-to data/raw/members_2023.json
+                   --input-file data/raw/voting_data.json \
+                   --save-to data/raw/members_data.json
 
 # Scrape election results for members
 python src/main.py --type election \
@@ -54,25 +59,27 @@ The IDs can be obtianed by visiting the [Voting by session](https://www.nrsr.sk/
 
 > the script was tested using voting IDs starting at 51426, i.e. starting 9th election cycle (from 2023)
 
-
-## Use data
-
-Convert data to excel for easier use
+#### Combine the scraped subsets - convert to excel
 
 ```bash
-python src/convert/convert_to_excel.py --input-voting data/raw/voting_51426-55841.json \
-                                       --input-member data/raw/members_51426-55841.json \
+python src/convert/convert_to_excel.py --input-voting data/raw/voting_data.json \
+                                       --input-member data/raw/members_data.json \
                                        --input-election data/interim/member_elections.xlsx \
-                                       --output-file data/interim/voting_51426-55841.xlsx
+                                       --output-file data/interim/voting_member_election.xlsx
 ```
 
-When using individual files, esure correct encoding when loading the results
 
-```python
-import json
+### Scrape voting + member bio + voting document info
 
-with open('data/raw/votings.json', 'r', encoding='utf-8') as f:
-    votings = json.load(f)
+Use this option to get full info for voting and member in one output file.
 
-votings
+```bash
+python src/main.py --type voting+member+document \
+                   --start-id 55837 \
+                   --end-id 55841 \
+                   --save-to data/raw/voting_and_member.json
 ```
+
+## Related/similar projects
+
+* [Rozuzli.to](rozuzli.to) - direct download a CSV with all votings (no election and member bio)

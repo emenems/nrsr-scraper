@@ -10,8 +10,9 @@ def voting_to_dataframe(json_file):
     for voting_id, details in data.items():
         base_info = {
             'voting_id': voting_id,
-            'datum_cas': details.get('datum_cas'),
+            'datum_cas': details.get('cas_hlasovania'),
             'schodza': details.get('schodza'),
+            'cislo_schodze': details.get('cislo_schodze'),
             'cislo_hlasovania': details.get('cislo_hlasovania'),
             'nazov_hlasovania': details.get('nazov_hlasovania'),
             'vysledok_hlasovania': details.get('vysledok_hlasovania'),
@@ -88,8 +89,10 @@ def _map_result(result_str):
     if result_str is None:
         return None
     elif "neprešiel" in result_str.lower():
-        return "áno"
+        return "nie"
     elif "prešiel" in result_str.lower():
+        return "ano"
+    elif "nebol" in result_str.lower(): # uznasaniaschopny
         return "nie"
     else:
         return None

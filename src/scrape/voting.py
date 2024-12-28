@@ -93,10 +93,11 @@ def parse_voting_results(content, logger):
                     mep_name = cell.find('a').text.strip()
                     mep_id = cell.find('a')['href'].split('PoslanecID=')[1].split('&')[0]
                     results.append({
-                        'klub': current_party,
-                        'poslanec_meno': mep_name,
+                        'hlas_id': vote,
                         'poslanec_id': mep_id,
-                        'hlas_id': vote
+                        'poslanec_meno': mep_name,
+                        'hlasovanie_klub': current_party,
+                        
                     })
     except AttributeError:
         logger.error(f"Error parsing voting results. Row: {nr} - {row}")
@@ -104,7 +105,7 @@ def parse_voting_results(content, logger):
     
     return results
 
-def scrape_voting_data(id_start, id_end, save_to_file, logger=None):
+def scrape_voting_data(id_start: int, id_end: int, save_to_file: str | None, logger = None):
     logger = logger or logging.getLogger(__name__)
     data = {}
     for voting_id in range(id_start, id_end + 1):
@@ -117,11 +118,13 @@ def scrape_voting_data(id_start, id_end, save_to_file, logger=None):
             
             if summary and stats and results:
                 data[voting_id] = {
-                    'datum_cas': summary.get('datum_cas'),
+                    'cas_hlasovania': summary.get('datum_cas'),
                     'schodza': summary.get('schodza'),
+                    'cislo_schodze': summary.get('schodza').split()[-1],
                     'cislo_hlasovania': summary.get('cislo_hlasovania'),
                     'nazov_hlasovania': summary.get('nazov_hlasovania'),
                     'vysledok_hlasovania': summary.get('vysledok_hlasovania'),
+                    'url_hlasovania': f"https://www.nrsr.sk/web/Default.aspx?sid=schodze/hlasovanie/hlasklub&ID={voting_id}",
                     'pritomni': stats.get('pritomni'),
                     'hlasujucich': stats.get('hlasujucich'),
                     'za_hlasovalo': stats.get('za_hlasovalo'),

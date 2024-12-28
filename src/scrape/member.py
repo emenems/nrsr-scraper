@@ -3,8 +3,8 @@ from bs4 import BeautifulSoup
 import json
 import logging
 
-def fetch_mp_content(mp_id, logger, cycle=9):
-    url = f"https://www.nrsr.sk/web/Default.aspx?sid=poslanci/poslanec&PoslanecID={mp_id}&CisObdobia={cycle}"
+def fetch_mp_content(mp_id, logger):
+    url = f"https://www.nrsr.sk/web/Default.aspx?sid=poslanci/poslanec&PoslanecID={mp_id}"
     
     response = requests.get(url)
     
@@ -70,12 +70,12 @@ def parse_member_membership(content, logger):
     
     return memberships
 
-def scrape_member_data(mp_id, cycle=9, save_to_file="data/raw/member.json", logger=None):
+def scrape_member_data(mp_id, save_to_file="data/raw/member.json", logger=None):
     logger = logger or logging.getLogger(__name__)
     data = {}
     
     logger.info(f"Scraping data for MP ID {mp_id}")
-    content = fetch_mp_content(mp_id, logger, cycle)
+    content = fetch_mp_content(mp_id, logger)
     if content:
         info = parse_member_info(content, logger)
         memberships = parse_member_membership(content, logger)
@@ -94,7 +94,7 @@ def scrape_member_data(mp_id, cycle=9, save_to_file="data/raw/member.json", logg
         
     return None
 
-def scrape_member_data_all(voting_file, cycle=9, save_to_file="data/raw/members.json", logger=None):
+def scrape_member_data_all(voting_file, save_to_file="data/raw/members.json", logger=None):
     logger = logger or logging.getLogger(__name__)
     with open(voting_file, 'r', encoding='utf-8') as f:
         votings = json.load(f)
@@ -106,7 +106,7 @@ def scrape_member_data_all(voting_file, cycle=9, save_to_file="data/raw/members.
     
     data = {}
     for member in members:
-        member_data = scrape_member_data(member, cycle, save_to_file=None, logger=logger)
+        member_data = scrape_member_data(member, save_to_file=None, logger=logger)
         if member_data:
             data.update(member_data)
 
@@ -115,3 +115,28 @@ def scrape_member_data_all(voting_file, cycle=9, save_to_file="data/raw/members.
             json.dump(data, f, ensure_ascii=False, indent=4)
 
     return data
+
+def add_member_info_to_voting_data(voting_data, logger=None, save_to_file=None):
+    logger = logger or logging.getLogger(__name__)
+    member_cache = {}
+
+    for _, voting in voting_data.items():
+        for member in voting['hlasovanie']:
+            member_id = member['poslanec_id']
+            member['poslanec_bio'] = {}
+            member['poslanec_clenstvo'] = []
+            if member_id in member_cache:
+                member["poslanec_bio"] = member_cache[member_id]["info"]
+                member["poslanec_clenstvo"] = member_cache[member_id]["clenstvo"]
+            else:
+                member_data = scrape_member_data(member_id, save_to_file=None, logger=logger)
+                if member_data:
+                    member_cache[member_id] = member_data[member_id]
+                    member["poslanec_bio"] = member_data[member_id]["info"]
+                    member["poslanec_clenstvo"] = member_data[member_id]["clenstvo"]
+
+    if save_to_file:
+        with open(save_to_file, 'w', encoding='utf-8') as f:
+            json.dump(voting_data, f, ensure_ascii=False, indent=4)
+
+    return voting_data

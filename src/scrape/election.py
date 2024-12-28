@@ -2,7 +2,7 @@ import pandas as pd
 
 def get_election_member_votes(
         input_xlsx: str = 'https://volby.statistics.sk/nrsr/nrsr2023/files/xlsx/NRSR2023_SK_tab07a.xlsx',
-        output_xlsx: str = 'data/interim/election_member_votes.xlsx',
+        output_xlsx: str | None = 'data/interim/election_member_votes.xlsx',
         elected_only: bool = True
     ):
     """

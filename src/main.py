@@ -1,8 +1,9 @@
 import logging
 import argparse
 from scrape.voting import scrape_voting_data
-from scrape.member import scrape_member_data_all
+from scrape.member import scrape_member_data_all, add_member_info_to_voting_data
 from scrape.election import get_election_member_votes
+from scrape.document import add_documents_to_voting_data
 
 def setup_logging(log_file):
     """
@@ -54,14 +55,26 @@ def main():
             logging.info(f"Scraping data for IDs {start_id} to {end_id} and saving to {save_to}...")
             data = scrape_voting_data(start_id, end_id, save_to)
             logging.info(f"Scraped data for {len(data)} votings.")
-        elif args.type == 'members':
+        elif args.type == 'member':
             logging.info(f"Scraping member info...")
-            data = scrape_member_data_all(args.input_file, save_to_file=args.save_to)
+            data = scrape_member_data_all(args.input_file, save_to_file=save_to)
             logging.info(f"Scraped data for {len(data)} members.")
         elif args.type == 'election':
             logging.info(f"Scraping election member votes...")
-            data = get_election_member_votes(input_xlsx=args.input_file, output_xlsx=args.save_to)
+            data = get_election_member_votes(input_xlsx=args.input_file, output_xlsx=save_to)
             logging.info(f"Scraped data for {len(data)} members.")
+        elif 'voting+' in args.type:
+            logging.info(f"Scraping data for IDs {start_id} to {end_id} and saving to {save_to}...")
+            data = scrape_voting_data(start_id, end_id, save_to)
+            logging.info(f"Scraped data for {len(data)} votings.")
+            if 'document' in args.type:
+                logging.info(f"Adding documents to votings...")
+                data = add_documents_to_voting_data(data, save_to_file=save_to)
+                logging.info(f"Added documents to {len(data)} votings.")
+            if 'member' in args.type:
+                logging.info(f"Adding member info to votings...")
+                data = add_member_info_to_voting_data(data, save_to_file=save_to)
+                logging.info(f"Added member info to {len(data)} votings.")
         else:
             logging.error(f"Invalid type: {args.type}")
     except Exception as e:
