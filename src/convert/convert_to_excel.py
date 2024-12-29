@@ -67,6 +67,28 @@ def member_to_dataframe(json_file):
     df = df.drop_duplicates()
     return df
 
+def _count_academic_titles(title_string):
+    if not title_string:
+        return 0
+    elif len(title_string) < 2:
+        return 0
+
+    # List of academic titles used in Slovakia
+    academic_titles = [
+        'Bc.', 'Mgr.', 'Ing.', 'MUDr.', 'MVDr.', 'JUDr.', 'PhDr.', 'Ph.D', 'RNDr.', 'RSDr.', 'ThDr.', 'PharmDr.', 'PaedDr.', 'Dr.', 'PhD.', 'D.Phil.', 'ThLic.', 'ThDr.', 'DrSc.', 'doc.', 'prof.', 'Dr. med.', 'MBA', 'MSc', 'M.A.', 'MIM', 'Dis.art.', 'ArtD.', 'Mgr. art.'
+    ]
+
+    # Fix incorrect inputs
+    titles_prep = title_string.replace('M. A.', 'M.A.').replace('MSc.','MSc').replace('Ph.D.','Ph.D').replace('Dis. art','Dis.art')
+
+    # Split the input string by commas and spaces
+    titles = [title.strip() for title in titles_prep.replace(',', ' ').split()]
+
+    # Count the number of academic titles in the input string
+    count = sum(1 for title in titles if title in academic_titles)
+
+    return count
+
 def _map_voting(hlas_id):
     if hlas_id is None:
         return None
@@ -102,6 +124,7 @@ if __name__ == "__main__":
     parser.add_argument('--input-voting', type=str, help='The JSON file to convert to Excel')
     parser.add_argument('--input-member', type=str, help='The JSON file to join with voting')
     parser.add_argument('--input-election', type=str, help='The excel containing election data and join with voting')
+    parser.add_argument('--input-document', type=str, help='The XLSX file to join with voting')
     parser.add_argument('--output-file', type=str, help='The Excel file to save the converted data')
 
     args = parser.parse_args()
@@ -114,6 +137,7 @@ if __name__ == "__main__":
         nr_check = voting.shape[0]
         if args.input_member:
             member = member_to_dataframe(args.input_member)
+            member['poslanec_titul_pocet'] = member['poslanec_titul'].apply(_count_academic_titles)
             if args.input_election:
                 election = pd.read_excel(args.input_election)
                 member = pd.merge(
@@ -132,6 +156,16 @@ if __name__ == "__main__":
                 validate='m:1',
                 suffixes=('', '_y')
             ).drop(columns=['poslanec_priezvisko_meno_y'], errors='ignore')
+        if args.input_document:
+            document = pd.read_excel(args.input_document)
+            voting = pd.merge(
+                voting.astype({'cislo_schodze': 'int', 'cislo_hlasovania': 'int'}),
+                document.drop(columns=['cas_hlasovania']),
+                on=['cislo_schodze', 'cislo_hlasovania'],
+                how='left',
+                validate='m:1',
+                suffixes=('', '_y')
+            )
         if voting.shape[0] != nr_check:
             print(f"Error: The number of rows in the voting data has changed from {nr_check} to {voting.shape[0]} after joining with member data.")
             exit(1)

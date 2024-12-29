@@ -38,11 +38,12 @@ python src/main.py --type voting \
                    --start-id 55837 \
                    --end-id 55841
 
-# Scrape votings - passing the starting and end ID of the session and specifying the save file
+# Scrape votings - passing the starting and end ID of the session and specifying the save file and log file
 python src/main.py --type voting \
                    --start-id 55837 \
-                   --end-id 55841 \
-                   --save-to data/raw/voting_data.json
+                   --end-id 55902 \
+                   --log-file data/raw/voting_data_55837-55902.log \
+                   --save-to data/raw/voting_data_55837-55902.json
 
 # Scrape member info using the voting to get all member IDs
 python src/main.py --type member \
@@ -53,6 +54,11 @@ python src/main.py --type member \
 python src/main.py --type election \
                     --input-file https://volby.statistics.sk/nrsr/nrsr2023/files/xlsx/NRSR2023_SK_tab07a.xlsx \
                     --save-to data/interim/member_elections.xlsx
+
+# Scrape documents related to voting
+python src/main.py --type document \
+                    --input-file data/raw/voting_data.json \
+                    --save-to data/raw/document_data.xlsx
 ```
 
 The IDs can be obtianed by visiting the [Voting by session](https://www.nrsr.sk/web/?sid=schodze/hlasovanie/schodze) then selecting the session and the voting - the ID is in the URL, e.g. 55635 `https://www.nrsr.sk/web/Default.aspx?sid=schodze/hlasovanie/hlasklub&ID=55635`
@@ -65,6 +71,7 @@ The IDs can be obtianed by visiting the [Voting by session](https://www.nrsr.sk/
 python src/convert/convert_to_excel.py --input-voting data/raw/voting_data.json \
                                        --input-member data/raw/members_data.json \
                                        --input-election data/interim/member_elections.xlsx \
+                                       --input-document data/raw/document_data.xlsx \
                                        --output-file data/interim/voting_member_election.xlsx
 ```
 

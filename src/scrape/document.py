@@ -3,8 +3,8 @@ from bs4 import BeautifulSoup
 import json
 import logging
 from datetime import datetime, timedelta
-# import pandas as pd
-# import re
+import pandas as pd
+import re
 
 def _generate_datetime_string(dt):
     """Generate NRSR page specific type string with %20 between date and time.
@@ -167,98 +167,64 @@ def add_documents_to_voting_data(voting_data, logger = None, save_to_file = None
 
     return voting_data
 
-# def _extract_unique_ids(json_file: str | None = None, data: dict | None = None):
-#     if json_file is not None and data is None:
-#         with open(json_file, 'r', encoding='utf-8') as f:
-#             voting_data = json.load(f)
+def _extract_unique_ids(json_file: str | None = None, data: dict | None = None):
+    if json_file is not None and data is None:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
     
-#     records = []
-#     for _, details in data.items():
-#         schodza = re.search(r'\d+', details.get('schodza'))
-#         record = {
-#             'datum_cas': datetime.strptime(details.get('datum_cas'), '%d. %m. %Y %H:%M'),
-#             'cislo_schodze': int(schodza.group(0)),
-#             'cislo_hlasovania': int(details.get('cislo_hlasovania'))
-#         }
-#         records.append(record)
+    records = []
+    for _, details in data.items():
+        schodza = re.search(r'\d+', details.get('schodza'))
+        record = {
+            'cas_hlasovania': datetime.strptime(details.get('cas_hlasovania'), '%d. %m. %Y %H:%M'),
+            'cislo_schodze': int(schodza.group(0)),
+            'cislo_hlasovania': int(details.get('cislo_hlasovania'))
+        }
+        records.append(record)
     
-#     df = pd.DataFrame(records)
-#     df = df.drop_duplicates()
-#     return df
+    df = pd.DataFrame(records)
+    df = df.drop_duplicates()
+    return df
 
-# def scrape_voting_table(voting_file: str | dict, save_to_file, logger = None):
-#     logger = logger or logging.getLogger()
-#     # get all meetings in order to get unique meeting and voting IDs needet to find the CPT (document id)
-#     meetings = _extract_unique_ids(json_file=voting_file if isinstance(voting_file, str) else None, data=voting_file if isinstance(voting_file, dict) else None)
+def scrape_voting_documents(voting_file: str | dict, save_to_file, logger = None):
+    logger = logger or logging.getLogger()
+    # get all meetings in order to get unique meeting and voting IDs needet to find the CPT (document id)
+    meetings = _extract_unique_ids(json_file=voting_file if isinstance(voting_file, str) else None, data=voting_file if isinstance(voting_file, dict) else None)
 
-#     # run a loop over all unique ID combination and fetch all possible document CPT IDs
-#     df = pd.DataFrame()
-#     for _, meeting in meetings.iterrows():
-#         meeting_id = meeting['cislo_schodze']
-#         voting_time = meeting['datum_cas']
+    # run a loop over all unique ID combination and fetch all possible document CPT IDs
+    df = pd.DataFrame()
+    for _, meeting in meetings.iterrows():
+        meeting_id = meeting['cislo_schodze']
+        voting_time = meeting['cas_hlasovania']
         
-#         logger.info(f"Scraping voting table for meeting {meeting_id} and time {voting_time}...")
-#         content = fetch_voting_document_table(meeting_id, voting_time, logger)
+        logger.info(f"Scraping voting table for meeting {meeting_id} and time {voting_time}...")
+        content = fetch_voting_document_table(meeting_id, voting_time, logger)
 
-#         if content:
-#             df = pd.concat([df,pd.DataFrame(parse_voting_document_table(content, logger))], ignore_index=True)
+        if content:
+            df = pd.concat([df,pd.DataFrame(parse_voting_document_id(content, logger))], ignore_index=True)
     
-#     df = df.drop_duplicates().dropna().astype({'cislo_schodze': int, 'cislo_hlasovania': int})
+    df = df.drop_duplicates().dropna().astype({'cislo_schodze': int, 'cislo_hlasovania': int})
 
-#     # having the CPT ID related to voting, now get the data related to the CPT
-#     meetings = pd.merge(meetings, df, on=['cislo_schodze', 'cislo_hlasovania'])
-#     meetings = meetings[meetings['parlamentna_tlac_cislo'] != ''].drop_duplicates()
-#     meetings["cpt_url"] = meetings['parlamentna_tlac_cislo'].apply(lambda x: f"https://www.nrsr.sk/web/Default.aspx?sid=zakony/cpt&ID={x}")
+    # having the CPT ID related to voting, now get the data related to the CPT
+    meetings = pd.merge(meetings, df, on=['cislo_schodze', 'cislo_hlasovania'])
+    meetings = meetings[meetings['cislo_parlamentna_tlac'] != ''].drop_duplicates()
+    meetings["url_parlamentna_tlac"] = meetings['cislo_parlamentna_tlac'].apply(lambda x: f"https://www.nrsr.sk/web/Default.aspx?sid=zakony/cpt&ID={x}")
 
-#     # run a loop over all unique CPT IDs and fetch all possible document details
-#     df = pd.DataFrame()
-#     for _, meeting in meetings.iterrows():
-#         url = meeting['cpt_url']
+    # run a loop over all unique CPT IDs and fetch all possible document details
+    df = pd.DataFrame()
+    for url in meetings['url_parlamentna_tlac'].unique():
         
-#         logger.info(f"Scraping document details for CPT {url}...")
-#         content = fetch_document_details(url, logger)
+        logger.info(f"Scraping document details for CPT {url}...")
+        content = fetch_document_details(url, logger)
 
-#         if content:
-#             df = pd.concat([df,pd.DataFrame([parse_document_details(content, logger)])], ignore_index=True)
-
-# def extend_voting_data(data: dict, logger = None):
-#     """Extend the voting data with the document details.
-
-#     Args:
-#         data (dict): The voting data.
-#         logger (Logger): The logger object.
-#     """
-#     logger = logger or logging.getLogger()
-#     meetings = _extract_unique_ids(data=data)
-
-#     # run a loop over all unique ID combination and fetch all possible document CPT IDs
-#     df = pd.DataFrame()
-#     for _, meeting in meetings.iterrows():
-#         meeting_id = meeting['cislo_schodze']
-#         voting_time = meeting['datum_cas']
-        
-#         logger.info(f"Scraping voting table for meeting {meeting_id} and time {voting_time}...")
-#         content = fetch_voting_document_table(meeting_id, voting_time, logger)
-
-#         if content:
-#             df = pd.concat([df,pd.DataFrame(parse_voting_document_table(content, logger))], ignore_index=True)
+        if content:
+            df = pd.concat([df,pd.DataFrame([parse_document_details(content, logger)])], ignore_index=True)
     
-#     df = df.drop_duplicates().dropna().astype({'cislo_schodze': int, 'cislo_hlasovania': int})
+    df = df.drop_duplicates(subset=['cislo_parlamentna_tlac']).dropna()
 
-#     # having the CPT ID related to voting, now get the data related to the CPT
-#     meetings = pd.merge(meetings, df, on=['cislo_schodze', 'cislo_hlasovania'])
-#     meetings = meetings[meetings['parlamentna_tlac_cislo'] != ''].drop_duplicates()
-#     meetings["cpt_url"] = meetings['parlamentna_tlac_cislo'].apply(lambda x: f"https://www.nrsr.sk/web/Default.aspx?sid=zakony/cpt&ID={x}")
+    output = pd.merge(meetings, df, on='cislo_parlamentna_tlac', validate='m:1')
 
-#     # run a loop over all unique CPT IDs and fetch all possible document details
-#     df = pd.DataFrame()
-#     for _, meeting in meetings.iterrows():
-#         url = meeting['cpt_url']
-        
-#         logger.info(f"Scraping document details for CPT {url}...")
-#         content = fetch_document_details(url, logger)
+    if save_to_file:
+        output.to_excel(save_to_file, index=False)
 
-#         if content:
-#             df = pd.concat([df,pd.DataFrame([parse_document_details(content, logger)])], ignore_index=True)
-
-#     return df
+    return output

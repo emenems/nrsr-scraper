@@ -3,7 +3,7 @@ import argparse
 from scrape.voting import scrape_voting_data
 from scrape.member import scrape_member_data_all, add_member_info_to_voting_data
 from scrape.election import get_election_member_votes
-from scrape.document import add_documents_to_voting_data
+from scrape.document import add_documents_to_voting_data, scrape_voting_documents
 
 def setup_logging(log_file):
     """
@@ -63,6 +63,10 @@ def main():
             logging.info(f"Scraping election member votes...")
             data = get_election_member_votes(input_xlsx=args.input_file, output_xlsx=save_to)
             logging.info(f"Scraped data for {len(data)} members.")
+        elif args.type == 'document':
+            logging.info(f"Sraping documents for votings in {args.input_file}...")
+            data = scrape_voting_documents(args.input_file, save_to_file=save_to)
+            logging.info(f"Scraped data for {len(data)} votings.")
         elif 'voting+' in args.type:
             logging.info(f"Scraping data for IDs {start_id} to {end_id} and saving to {save_to}...")
             data = scrape_voting_data(start_id, end_id, save_to)
