@@ -10,7 +10,7 @@ def voting_to_dataframe(json_file):
     for voting_id, details in data.items():
         base_info = {
             'voting_id': voting_id,
-            'datum_cas': details.get('cas_hlasovania'),
+            'cas_hlasovania': details.get('cas_hlasovania'),
             'schodza': details.get('schodza'),
             'cislo_schodze': details.get('cislo_schodze'),
             'cislo_hlasovania': details.get('cislo_hlasovania'),
@@ -29,7 +29,7 @@ def voting_to_dataframe(json_file):
         for vote in details.get('hlasovanie', []):
             record = base_info.copy()
             record.update({
-                'klub': vote.get('klub'),
+                'poslanec_klub': vote.get('hlasovanie_klub'),
                 'poslanec_priezvisko_meno': vote.get('poslanec_meno'),
                 'poslanec_id': vote.get('poslanec_id'),
                 'hlas_id': vote.get('hlas_id'),
